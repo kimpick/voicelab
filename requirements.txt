@@ -1,0 +1,9 @@
+# GPT-SoVITS 통합 패키지의 runtime 파이썬에 대부분 들어 있다. 없으면 이것만 더 설치
+fastapi
+uvicorn
+python-multipart
+requests
+soundfile>=0.12   # libsndfile 1.1+ (MP3 쓰기)
+numpy
+psutil
+pyyaml

@@ -1,0 +1,458 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>보이스랩</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='8' y='8' width='48' height='48' rx='14' fill='%23e8590c'/%3E%3Cpath d='M22 38v-12M32 44V20M42 36v-8' stroke='white' stroke-width='5' stroke-linecap='round'/%3E%3C/svg%3E">
+<style>
+:root {
+  --bg: #f7f5f2; --panel: #ffffff; --ink: #1d1b19; --muted: #6f6a64; --line: #e6e1da; --soft: #f1ede7;
+  --accent: #e8590c; --accent-ink: #ffffff; --good: #2b8a3e; --warn: #c27c0e; --bad: #c92a2a; --rec: #e03131;
+  --shadow: 0 1px 2px rgba(29,27,25,.06), 0 4px 16px rgba(29,27,25,.06);
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #161514; --panel: #1f1d1b; --ink: #f1ede7; --muted: #a39d95; --line: #34302c; --soft: #282522;
+  --accent: #ff7a33; --accent-ink: #1d1209; --good: #51cf66; --warn: #fcc419; --bad: #ff6b6b; --rec: #ff6b6b; color-scheme: dark;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.25); } }
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.6 "Pretendard", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", sans-serif; }
+button { font: inherit; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+header { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+header .wrap { display: flex; align-items: center; gap: 16px; height: 56px; }
+.logo { display: flex; align-items: center; gap: 8px; font-weight: 800; letter-spacing: -.02em; }
+.logo i { width: 26px; height: 26px; border-radius: 8px; background: var(--accent); display: grid; place-items: center; }
+.tabs { display: flex; gap: 4px; margin-left: 8px; }
+.tabs button { border: 0; background: transparent; color: var(--muted); padding: 6px 12px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+.tabs button.on { background: var(--soft); color: var(--ink); }
+.who { margin-left: auto; display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13.5px; min-width: 0; }
+.who span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn { border: 1px solid var(--line); background: var(--panel); color: var(--ink); padding: 8px 14px; border-radius: 10px; cursor: pointer; font-weight: 600; }
+.btn:hover { border-color: color-mix(in srgb, var(--ink) 25%, var(--line)); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.sm { padding: 5px 10px; font-size: 13px; }
+main { padding-block: 24px 64px; }
+.view[hidden] { display: none !important; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+h1 { font-size: 26px; letter-spacing: -.02em; margin: 0 0 8px; text-wrap: balance; }
+h2 { font-size: 18px; margin: 0 0 10px; letter-spacing: -.01em; }
+.muted { color: var(--muted); }
+.small { font-size: 13px; }
+.center { max-width: 560px; margin: 40px auto; padding: 28px; }
+.center p { margin: 0 0 12px; }
+.say { padding: 16px 18px; background: var(--soft); border-radius: 12px; font-size: 18px; font-weight: 600; margin: 14px 0; word-break: keep-all; }
+label.field { display: grid; gap: 6px; margin: 12px 0; font-size: 14px; font-weight: 600; }
+input[type=text], textarea, select { font: inherit; color: var(--ink); background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; }
+textarea { resize: vertical; min-height: 96px; }
+.err { color: var(--bad); font-size: 14px; min-height: 1.4em; }
+
+/* 녹음 */
+.studio { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .studio { grid-template-columns: 1fr; } }
+.side { padding: 12px; display: grid; gap: 6px; position: sticky; top: 72px; max-height: calc(100vh - 96px); overflow: auto; }
+@media (max-width: 860px) { .side { position: static; max-height: none; } .stage { order: -1; } .plist { max-height: 260px; overflow: auto; } }
+.grp { border: 0; background: transparent; text-align: left; padding: 10px 12px; border-radius: 10px; cursor: pointer; color: var(--ink); display: grid; gap: 6px; }
+.grp.on { background: var(--soft); }
+.grp .row { display: flex; justify-content: space-between; font-weight: 700; }
+.grp .row small { color: var(--muted); font-weight: 600; font-variant-numeric: tabular-nums; }
+.bar { height: 6px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+.grp.on .bar { background: var(--panel); }
+.bar i { display: block; height: 100%; background: var(--accent); border-radius: 99px; transition: width .3s; }
+.plist { display: grid; gap: 2px; margin-top: 4px; padding-top: 8px; border-top: 1px solid var(--line); }
+.pitem { border: 0; background: transparent; text-align: left; padding: 6px 8px; border-radius: 8px; cursor: pointer; color: var(--muted); display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
+.pitem.on { background: var(--soft); color: var(--ink); }
+.pitem span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--line); transform: translateY(-1px); }
+.dot.good { background: var(--good); } .dot.warn { background: var(--warn); } .dot.bad { background: var(--bad); }
+.stage { padding: 28px; display: grid; gap: 18px; }
+.meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 99px; background: var(--soft); font-size: 12.5px; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.chip.hint { background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
+.script { font-size: clamp(22px, 3.2vw, 30px); line-height: 1.5; font-weight: 700; letter-spacing: -.01em; word-break: keep-all; min-height: 3em; text-wrap: balance; }
+.desc { font-size: 14px; color: var(--muted); margin: 0; }
+.recrow { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.rec { width: 76px; height: 76px; border-radius: 50%; border: 0; background: var(--rec); color: #fff; cursor: pointer; display: grid; place-items: center; box-shadow: 0 0 0 6px color-mix(in srgb, var(--rec) 18%, transparent); transition: transform .1s; flex: none; }
+.rec:active { transform: scale(.96); }
+.rec svg { width: 30px; height: 30px; }
+.rec.on { animation: pulse 1.2s infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 0 14px color-mix(in srgb, var(--rec) 10%, transparent); } }
+.meter { flex: 1; min-width: 160px; display: grid; gap: 6px; }
+.meter .lv { height: 10px; border-radius: 99px; background: var(--soft); overflow: hidden; }
+.meter .lv i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--good) 0 70%, var(--warn) 70% 90%, var(--bad) 90%); transition: width .05s linear; }
+.meter .st { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.qc { border-radius: 12px; padding: 12px 14px; background: var(--soft); display: grid; gap: 6px; font-size: 14px; }
+.qc[data-v="good"] { background: color-mix(in srgb, var(--good) 12%, var(--panel)); }
+.qc[data-v="warn"] { background: color-mix(in srgb, var(--warn) 14%, var(--panel)); }
+.qc[data-v="bad"] { background: color-mix(in srgb, var(--bad) 12%, var(--panel)); }
+.qc b { font-size: 15px; }
+.qc ul { margin: 0; padding-left: 18px; }
+.qc .nums { color: var(--muted); font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.keys { font-size: 12.5px; color: var(--muted); }
+kbd { font: 600 11.5px ui-monospace, monospace; padding: 1px 6px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 5px; background: var(--panel); }
+
+/* 학습·합성 */
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 860px) { .two { grid-template-columns: 1fr; } }
+.pad { padding: 24px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 12px 0 16px; }
+.stat { background: var(--soft); border-radius: 12px; padding: 12px; }
+.stat b { display: block; font-size: 22px; font-variant-numeric: tabular-nums; }
+.stat span { font-size: 12.5px; color: var(--muted); }
+.need { margin: 0 0 14px; padding-left: 18px; color: var(--muted); font-size: 14px; }
+.job { border-top: 1px solid var(--line); padding: 12px 0; display: grid; gap: 6px; }
+.job:first-child { border-top: 0; }
+.job .top { display: flex; justify-content: space-between; gap: 8px; font-weight: 700; }
+.job .top small { color: var(--muted); font-weight: 600; }
+audio { width: 100%; margin-top: 8px; }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <div class="logo"><i><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M6 15V9M12 19V5M18 14v-4"/></svg></i>보이스랩</div>
+  <nav class="tabs" id="tabs" hidden>
+    <button data-v="studio" class="on">녹음</button><button data-v="train">학습</button><button data-v="play">들어보기</button>
+  </nav>
+  <div class="who" id="who" hidden><span id="whoName"></span><button class="btn sm" id="logout">로그아웃</button></div>
+</div></header>
+
+<main class="wrap">
+  <!-- 로그인 -->
+  <section class="view card center" id="vLogin" hidden>
+    <h1>내 목소리로 TTS 만들기</h1>
+    <p class="muted">평서문·감정·연기톤·리액션 대본을 15~20분 정도 녹음하면, 내 목소리로 글을 읽어 주는 음성 모델을 만들어 드려요.</p>
+    <p class="muted small">회사 구글 계정(modulabs.co.kr)으로 로그인해 주세요.</p>
+    <div id="gbtn" style="margin-top:18px"></div>
+    <p class="err" id="loginErr"></p>
+  </section>
+
+  <!-- 동의 -->
+  <section class="view card center" id="vConsent" hidden>
+    <h1>시작하기 전에</h1>
+    <p>이 서비스는 <b>본인 목소리</b>로만 모델을 만들 수 있어요. 녹음은 모두 이 화면에서 직접 하고, 파일은 올릴 수 없어요.</p>
+    <p class="muted small">녹음과 모델은 이 회사 서버에만 저장돼요. 다른 사람을 흉내 내거나 속이는 데 쓰면 안 돼요.</p>
+    <label class="field">이름<input type="text" id="cName" maxlength="40" autocomplete="name"></label>
+    <div class="muted small">아래 문장을 그대로 읽어 녹음해 주세요.</div>
+    <div class="say" id="cText">저는 제 목소리로 개인 음성 모델을 만드는 데 동의합니다. 이 모델은 제 목소리로만 사용하겠습니다.</div>
+    <div class="recrow">
+      <button class="rec" id="cRec" aria-label="동의 문장 녹음"></button>
+      <div class="meter"><div class="lv"><i id="cLv"></i></div><div class="st" id="cSt">버튼을 누르고 읽어 주세요. 다 읽으면 자동으로 멈춰요.</div></div>
+    </div>
+    <p class="err" id="cErr"></p>
+  </section>
+
+  <!-- 녹음 -->
+  <section class="view" id="vStudio" hidden>
+    <div class="studio">
+      <aside class="card side" id="side"></aside>
+      <div class="card stage">
+        <div class="meta"><span class="chip" id="gName"></span><span class="chip hint" id="pHint" hidden></span><span class="chip" id="pPos"></span></div>
+        <p class="desc" id="gDesc"></p>
+        <div class="script" id="pText"></div>
+        <div class="recrow">
+          <button class="rec" id="rec" aria-label="녹음"></button>
+          <div class="meter"><div class="lv"><i id="lv"></i></div><div class="st" id="st">버튼(또는 스페이스)을 누르고 읽어 주세요. 다 읽고 잠깐 조용하면 자동으로 멈춰요.</div></div>
+        </div>
+        <div class="qc" id="qc" hidden></div>
+        <div class="actions">
+          <button class="btn" id="prev">← 이전</button>
+          <button class="btn" id="play" disabled>내 녹음 듣기</button>
+          <button class="btn primary" id="next">다음 →</button>
+        </div>
+        <div class="keys"><kbd>Space</kbd> 녹음/멈춤 · <kbd>←</kbd> <kbd>→</kbd> 이동 · <kbd>P</kbd> 듣기</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 학습 -->
+  <section class="view" id="vTrain" hidden>
+    <div class="two">
+      <div class="card pad">
+        <h2>녹음 현황</h2>
+        <div class="stats"><div class="stat"><b id="sUse">0</b><span>쓸 수 있는 녹음</span></div><div class="stat"><b id="sMin">0</b><span>분</span></div><div class="stat"><b id="sNeu">0</b><span>평서문</span></div></div>
+        <ul class="need" id="need"></ul>
+        <button class="btn primary" id="trainBtn" disabled>학습 시작</button>
+        <p class="muted small" style="margin-top:12px">학습은 보통 20~40분 걸려요. 창을 닫아도 계속 진행되고, 다른 사람 학습이 먼저 있으면 순서대로 해요. 더 녹음한 뒤 다시 학습하면 새 버전이 생겨요.</p>
+        <p class="err" id="trainErr"></p>
+      </div>
+      <div class="card pad"><h2>학습 기록</h2><div id="jobs" class="muted small">아직 학습한 적이 없어요.</div></div>
+    </div>
+  </section>
+
+  <!-- 들어보기 -->
+  <section class="view card pad" id="vPlay" hidden style="max-width:760px;margin:0 auto">
+    <h2>내 목소리로 읽기</h2>
+    <p class="muted small" id="playNote"></p>
+    <div class="row2">
+      <label class="field">톤<select id="style"></select></label>
+      <label class="field">모델 버전<select id="ver"></select></label>
+    </div>
+    <label class="field">속도 <span class="muted small" id="spdV">1.0×</span><input type="range" id="spd" min="0.8" max="1.3" step="0.05" value="1"></label>
+    <label class="field">문장<textarea id="sText" maxlength="300">안녕하세요. 이건 제 목소리로 만든 인공지능 음성이에요.</textarea></label>
+    <button class="btn primary" id="sBtn">읽기</button>
+    <span class="muted small" id="sInfo" style="margin-left:8px"></span>
+    <audio id="sAudio" controls hidden></audio>
+    <p class="err" id="sErr"></p>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+const ICON_MIC = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+const ICON_STOP = '<svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>';
+async function api(path, opt = {}) {
+  const r = await fetch(path, { credentials: "same-origin", ...opt });
+  if (r.status === 401) { show("login"); throw new Error("login"); }
+  return r;
+}
+
+/* ---------- 마이크 녹음: 원래 샘플레이트 그대로 16bit WAV. 말이 끝나고 1.1초 조용하면 자동 멈춤 ---------- */
+const mic = {
+  ctx: null, sr: 48000, ready: null, on: false, chunks: [], n: 0, voiced: 0, sil: 0, floor: 0.004, onLevel: null, onAuto: null,
+  prepare() {
+    if (this.ready) return this.ready;
+    const AC = window.AudioContext || window.webkitAudioContext; this.ctx = new AC();
+    this.ready = (async () => {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 } });
+      this.sr = this.ctx.sampleRate;
+      const src = this.ctx.createMediaStreamSource(stream);
+      const sink = this.ctx.createGain(); sink.gain.value = 0; sink.connect(this.ctx.destination);
+      const code = 'class P extends AudioWorkletProcessor{constructor(){super();this.b=new Float32Array(1024);this.n=0}process(i){const c=i[0]&&i[0][0];if(c){for(let k=0;k<c.length;k++){this.b[this.n++]=c[k];if(this.n===1024){this.port.postMessage(this.b.slice(0));this.n=0}}}return true}}registerProcessor("pcm",P)';
+      const url = URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
+      await this.ctx.audioWorklet.addModule(url);
+      const node = new AudioWorkletNode(this.ctx, "pcm"); node.port.onmessage = (e) => this.frame(e.data);
+      src.connect(node); node.connect(sink);
+    })();
+    this.ready.catch(() => { this.ready = null; });
+    return this.ready;
+  },
+  frame(x) {
+    let s = 0, pk = 0; for (let i = 0; i < x.length; i++) { s += x[i] * x[i]; const a = Math.abs(x[i]); if (a > pk) pk = a; }
+    const rms = Math.sqrt(s / x.length), dt = x.length / this.sr;
+    if (this.onLevel) this.onLevel(Math.min(1, Math.sqrt(rms) * 2.2), pk);
+    if (!this.on) { this.floor = this.floor * 0.98 + rms * 0.02; return; }
+    this.chunks.push(x); this.n += x.length;
+    const thr = Math.max(0.012, this.floor * 3);
+    if (rms > thr) { this.voiced += dt; this.sil = 0; } else this.sil += dt;
+    if ((this.voiced > 0.4 && this.sil > 1.1) || this.n / this.sr > 15) { if (this.onAuto) this.onAuto(); }
+  },
+  async start() { await this.prepare(); if (this.ctx.state === "suspended") await this.ctx.resume(); this.chunks = []; this.n = 0; this.voiced = 0; this.sil = 0; this.on = true; },
+  stop() { this.on = false; return encodeWav(this.chunks, this.n, this.sr); },
+};
+function encodeWav(chunks, n, sr) {
+  const buf = new ArrayBuffer(44 + n * 2), dv = new DataView(buf);
+  const w = (p, s) => { for (let i = 0; i < s.length; i++) dv.setUint8(p + i, s.charCodeAt(i)); };
+  w(0, "RIFF"); dv.setUint32(4, 36 + n * 2, true); w(8, "WAVEfmt "); dv.setUint32(16, 16, true); dv.setUint16(20, 1, true); dv.setUint16(22, 1, true);
+  dv.setUint32(24, sr, true); dv.setUint32(28, sr * 2, true); dv.setUint16(32, 2, true); dv.setUint16(34, 16, true); w(36, "data"); dv.setUint32(40, n * 2, true);
+  let o = 44; for (const c of chunks) for (let i = 0; i < c.length; i++) { const v = Math.max(-1, Math.min(1, c[i])); dv.setInt16(o, v < 0 ? v * 0x8000 : v * 0x7fff, true); o += 2; }
+  return new Blob([buf], { type: "audio/wav" });
+}
+
+/* ---------- 화면 전환 ---------- */
+let me = null, P = null, takes = {}, cur = { group: "neutral", idx: 0 };
+function show(v) {
+  for (const [k, id] of Object.entries({ login: "vLogin", consent: "vConsent", studio: "vStudio", train: "vTrain", play: "vPlay" })) $(id).hidden = k !== v;
+  const inApp = ["studio", "train", "play"].includes(v);
+  $("tabs").hidden = !inApp; $("who").hidden = !(inApp || v === "consent");
+  document.querySelectorAll("#tabs button").forEach((b) => b.classList.toggle("on", b.dataset.v === v));
+  if (v === "train") loadTrain();
+  if (v === "play") loadPlay();
+}
+document.querySelectorAll("#tabs button").forEach((b) => b.addEventListener("click", () => show(b.dataset.v)));
+$("logout").addEventListener("click", async () => { await fetch("/api/logout", { method: "POST" }); location.reload(); });
+
+async function boot() {
+  const r = await fetch("/api/me");
+  if (r.status === 401) return showLogin();
+  me = await r.json();
+  $("whoName").textContent = me.name + " · " + me.email;
+  if (!me.consent) { show("consent"); return; }
+  await loadStudio(); show("studio");
+}
+async function showLogin() {
+  show("login");
+  const cfg = await (await fetch("/api/config")).json();
+  if (!cfg.google_client_id) { $("loginErr").textContent = "관리자가 구글 로그인을 아직 설정하지 않았어요."; return; }
+  const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
+  s.onload = () => {
+    google.accounts.id.initialize({ client_id: cfg.google_client_id, hd: "modulabs.co.kr", callback: async (resp) => {
+      const r = await fetch("/api/login/google", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: resp.credential }) });
+      const j = await r.json();
+      if (!r.ok) { $("loginErr").textContent = j.error || "로그인 실패"; return; }
+      boot();
+    } });
+    google.accounts.id.renderButton($("gbtn"), { theme: "outline", size: "large", text: "signin_with", locale: "ko" });
+  };
+  document.head.appendChild(s);
+}
+
+/* ---------- 동의 녹음 ---------- */
+let cRecording = false;
+$("cRec").innerHTML = ICON_MIC;
+async function cStop() {
+  if (!cRecording) return; cRecording = false; $("cRec").classList.remove("on"); $("cRec").innerHTML = ICON_MIC;
+  const wav = mic.stop(); mic.onAuto = null; $("cSt").textContent = "확인 중…";
+  const fd = new FormData(); fd.append("name", $("cName").value.trim()); fd.append("file", wav, "consent.wav");
+  const r = await api("/api/consent", { method: "POST", body: fd }); const j = await r.json();
+  if (!r.ok) { $("cErr").textContent = j.error || "다시 녹음해 주세요"; $("cSt").textContent = "다시 녹음해 주세요."; return; }
+  me.consent = true; await loadStudio(); show("studio");
+}
+$("cRec").addEventListener("click", async () => {
+  $("cErr").textContent = "";
+  if (!$("cName").value.trim()) { $("cErr").textContent = "이름을 적어 주세요."; return; }
+  if (cRecording) return cStop();
+  try { mic.onLevel = (v) => { $("cLv").style.width = (v * 100).toFixed(0) + "%"; }; mic.onAuto = cStop; await mic.start(); }
+  catch (e) { $("cErr").textContent = "마이크를 쓸 수 없어요. 주소창에서 마이크를 허용해 주세요."; return; }
+  cRecording = true; $("cRec").classList.add("on"); $("cRec").innerHTML = ICON_STOP; $("cSt").textContent = "녹음 중… 다 읽으면 자동으로 멈춰요.";
+});
+
+/* ---------- 녹음 스튜디오 ---------- */
+async function loadStudio() {
+  P = await (await api("/api/prompts")).json();
+  takes = await (await api("/api/takes")).json();
+  const firstOpen = P.prompts.findIndex((p) => !takes[p.id]);
+  if (firstOpen >= 0) { const p = P.prompts[firstOpen]; cur.group = p.group; cur.idx = groupPrompts(p.group).indexOf(p); }
+  renderSide(); renderPrompt();
+}
+const groupPrompts = (g) => P.prompts.filter((p) => p.group === g);
+const curPrompt = () => groupPrompts(cur.group)[cur.idx];
+function renderSide() {
+  const side = $("side"); side.innerHTML = "";
+  for (const g of P.groups) {
+    const ps = groupPrompts(g.id), done = ps.filter((p) => takes[p.id] && takes[p.id].verdict !== "bad").length;
+    const b = document.createElement("button"); b.className = "grp" + (g.id === cur.group ? " on" : "");
+    b.innerHTML = `<div class="row"><span>${g.name}</span><small>${done} / ${ps.length}</small></div><div class="bar"><i style="width:${(done / ps.length * 100).toFixed(0)}%"></i></div>`;
+    b.addEventListener("click", () => { cur.group = g.id; const i = ps.findIndex((p) => !takes[p.id]); cur.idx = i >= 0 ? i : 0; renderSide(); renderPrompt(); });
+    side.appendChild(b);
+    if (g.id === cur.group) {
+      const list = document.createElement("div"); list.className = "plist";
+      ps.forEach((p, i) => {
+        const t = takes[p.id]; const it = document.createElement("button"); it.className = "pitem" + (i === cur.idx ? " on" : "");
+        it.innerHTML = `<i class="dot ${t ? t.verdict : ""}"></i><span></span>`; it.querySelector("span").textContent = p.text;
+        it.addEventListener("click", () => { cur.idx = i; renderSide(); renderPrompt(); });
+        list.appendChild(it);
+      });
+      side.appendChild(list);
+    }
+  }
+}
+function renderPrompt() {
+  const g = P.groups.find((x) => x.id === cur.group), ps = groupPrompts(cur.group), p = curPrompt();
+  $("gName").textContent = g.name; $("gDesc").textContent = g.desc;
+  $("pHint").hidden = !p.hint; $("pHint").textContent = p.hint || "";
+  $("pPos").textContent = `${cur.idx + 1} / ${ps.length}`;
+  $("pText").textContent = p.text;
+  showQc(takes[p.id]);
+  $("play").disabled = !takes[p.id];
+  const on = document.querySelector(".pitem.on"); if (on) on.scrollIntoView({ block: "nearest" });
+}
+const VLABEL = { good: "좋아요 ✓", warn: "써도 되지만 다시 녹음하면 더 좋아요", bad: "학습에 못 써요 · 다시 녹음해 주세요" };
+function showQc(t) {
+  const q = $("qc");
+  if (!t) { q.hidden = true; return; }
+  q.hidden = false; q.dataset.v = t.verdict;
+  const issues = (t.issues || []).map((s) => `<li>${s}</li>`).join("");
+  q.innerHTML = `<b>${VLABEL[t.verdict]}</b>${issues ? `<ul>${issues}</ul>` : ""}${t.asr ? `<div class="nums">들린 대로: ${escapeHtml(t.asr)}</div>` : ""}`;
+}
+function escapeHtml(s) { return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+let recording = false, busy = false;
+$("rec").innerHTML = ICON_MIC;
+mic.onLevel = null;
+function levelTo(el) { return (v, pk) => { el.style.width = (v * 100).toFixed(0) + "%"; }; }
+async function startRec() {
+  if (busy || recording) return;
+  try { mic.onLevel = levelTo($("lv")); mic.onAuto = stopRec; await mic.start(); }
+  catch (e) { $("st").textContent = "마이크를 쓸 수 없어요. 주소창에서 마이크를 허용해 주세요."; return; }
+  recording = true; $("rec").classList.add("on"); $("rec").innerHTML = ICON_STOP; $("st").textContent = "녹음 중… 다 읽고 잠깐 조용하면 자동으로 멈춰요."; $("qc").hidden = true;
+}
+async function stopRec() {
+  if (!recording) return; recording = false; busy = true;
+  $("rec").classList.remove("on"); $("rec").innerHTML = ICON_MIC;
+  const wav = mic.stop(); const p = curPrompt(); $("st").textContent = "검사 중…";
+  try {
+    const r = await api("/api/take/" + p.id, { method: "POST", headers: { "Content-Type": "audio/wav" }, body: wav });
+    const j = await r.json();
+    if (!r.ok) { $("st").textContent = j.error || "저장하지 못했어요"; return; }
+    takes[p.id] = j; showQc(j); $("play").disabled = false; renderSide();
+    $("st").textContent = j.verdict === "good" ? "좋아요! 다음 문장으로 넘어갈게요." : "결과를 확인하고 다시 녹음하거나 다음으로 가세요.";
+    if (j.verdict === "good") setTimeout(() => { if (!recording && curPrompt() === p) go(1); }, 900);
+  } finally { busy = false; }
+}
+function go(d) {
+  const ps = groupPrompts(cur.group);
+  if (cur.idx + d >= ps.length) { const gi = P.groups.findIndex((g) => g.id === cur.group); if (gi + 1 < P.groups.length) { cur.group = P.groups[gi + 1].id; cur.idx = 0; } }
+  else if (cur.idx + d < 0) { const gi = P.groups.findIndex((g) => g.id === cur.group); if (gi > 0) { cur.group = P.groups[gi - 1].id; cur.idx = groupPrompts(cur.group).length - 1; } }
+  else cur.idx += d;
+  renderSide(); renderPrompt(); $("st").textContent = "버튼(또는 스페이스)을 누르고 읽어 주세요.";
+}
+const player = new Audio();
+function playTake() { const p = curPrompt(); if (!takes[p.id]) return; player.src = "/api/take/" + p.id + "?t=" + Date.now(); player.play(); }
+$("rec").addEventListener("click", () => (recording ? stopRec() : startRec()));
+$("next").addEventListener("click", () => go(1)); $("prev").addEventListener("click", () => go(-1)); $("play").addEventListener("click", playTake);
+document.addEventListener("keydown", (e) => {
+  if ($("vStudio").hidden || e.target.closest("input, textarea, select")) return;
+  if (e.code === "Space") { e.preventDefault(); recording ? stopRec() : startRec(); }
+  else if (e.key === "ArrowRight") go(1); else if (e.key === "ArrowLeft") go(-1); else if (e.key.toLowerCase() === "p") playTake();
+});
+
+/* ---------- 학습 ---------- */
+let trainTimer = 0;
+async function loadTrain() {
+  clearTimeout(trainTimer);
+  const pr = await (await api("/api/progress")).json();
+  $("sUse").textContent = pr.usable; $("sMin").textContent = pr.minutes; $("sNeu").textContent = pr.groups.neutral.usable;
+  $("need").innerHTML = pr.can_train ? "<li>학습할 수 있어요. 감정·연기톤을 더 녹음할수록 톤 표현이 좋아져요.</li>" : pr.need.map((s) => `<li>${s}</li>`).join("");
+  const st = await (await api("/api/train")).json();
+  const active = st.jobs.some((j) => j.status === "queued" || j.status === "running");
+  $("trainBtn").disabled = !pr.can_train || active;
+  const box = $("jobs");
+  if (!st.jobs.length) box.textContent = "아직 학습한 적이 없어요.";
+  else {
+    box.innerHTML = "";
+    for (const j of st.jobs.slice().reverse()) {
+      const d = document.createElement("div"); d.className = "job";
+      const when = new Date((j.finished || j.started || j.created) * 1000).toLocaleString("ko-KR");
+      const label = { queued: j.ahead ? `대기 중 (앞에 ${j.ahead}개)` : "곧 시작", running: j.stage, done: "완료", error: "실패" }[j.status];
+      d.innerHTML = `<div class="top"><span>버전 ${j.version} · ${label}</span><small>${when}</small></div><div class="bar"><i style="width:${Math.round((j.progress || 0) * 100)}%"></i></div><div class="muted small">녹음 ${j.items}개 · ${j.minutes}분${j.error ? " · " + escapeHtml(j.error) : ""}</div>`;
+      box.appendChild(d);
+    }
+  }
+  if (active && !$("vTrain").hidden) trainTimer = setTimeout(loadTrain, 5000);
+}
+$("trainBtn").addEventListener("click", async () => {
+  $("trainErr").textContent = ""; $("trainBtn").disabled = true;
+  const r = await api("/api/train", { method: "POST" }); const j = await r.json();
+  if (!r.ok) $("trainErr").textContent = j.error || "시작하지 못했어요";
+  loadTrain();
+});
+
+/* ---------- 들어보기 ---------- */
+async function loadPlay() {
+  const v = await (await api("/api/voices")).json();
+  $("style").innerHTML = v.styles.map((s) => `<option value="${s.id}">${s.name}</option>`).join("") || '<option value="neutral">평소</option>';
+  $("ver").innerHTML = v.versions.slice().reverse().map((x) => `<option value="${x.version}">버전 ${x.version} (${x.minutes}분 학습)</option>`).join("");
+  const ok = v.versions.length > 0;
+  $("sBtn").disabled = !ok;
+  $("playNote").textContent = ok ? "톤을 고르면 그 톤으로 녹음한 내 목소리를 참고해서 읽어요." : "아직 학습된 모델이 없어요. 녹음을 마치고 학습 탭에서 학습을 시작해 주세요.";
+}
+$("spd").addEventListener("input", () => { $("spdV").textContent = Number($("spd").value).toFixed(2) + "×"; });
+$("sBtn").addEventListener("click", async () => {
+  $("sErr").textContent = ""; $("sInfo").textContent = "만드는 중…"; $("sBtn").disabled = true;
+  try {
+    const r = await api("/api/synth", { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text: $("sText").value, style: $("style").value, version: Number($("ver").value), speed: Number($("spd").value) }) });
+    if (!r.ok) { const j = await r.json(); $("sErr").textContent = j.error || "실패"; $("sInfo").textContent = ""; return; }
+    const blob = await r.blob(); const a = $("sAudio"); a.hidden = false; a.src = URL.createObjectURL(blob); a.play();
+    $("sInfo").textContent = `${r.headers.get("X-Synth-Seconds")}초`;
+  } finally { $("sBtn").disabled = false; }
+});
+
+boot();
+</script>
+</body>
+</html>

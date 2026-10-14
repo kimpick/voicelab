@@ -1,0 +1,9 @@
+.env
+app/config.json
+data/
+__pycache__/
+*.pyc
+*.wav
+*.mp3
+*.pth
+*.ckpt

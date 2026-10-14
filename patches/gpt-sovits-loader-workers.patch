@@ -1,0 +1,15 @@
+GPT-SoVITS 학습 데이터 로더 프로세스 수를 환경변수로 줄일 수 있게 하는 두 줄 패치.
+윈도우는 로더마다 파이썬+torch 프로세스가 떠서 RAM 16GB PC에서 학습이 메모리 부족으로 죽었다.
+voicelab 학습기는 GSV_NUM_WORKERS / GSV_VAL_WORKERS 를 2 / 1 로 넘긴다. 값을 안 주면 원래와 같다.
+
+--- a/GPT_SoVITS/s2_train.py
++++ b/GPT_SoVITS/s2_train.py
+@@ train_loader = DataLoader(
+-        num_workers=5,
++        num_workers=int(os.environ.get("GSV_NUM_WORKERS", "5")),
+
+--- a/GPT_SoVITS/AR/data/data_module.py
++++ b/GPT_SoVITS/AR/data/data_module.py
+@@ def val_dataloader(self):
+-            num_workers=max(self.num_workers, 12),
++            num_workers=int(__import__("os").environ.get("GSV_VAL_WORKERS", max(self.num_workers, 12))),

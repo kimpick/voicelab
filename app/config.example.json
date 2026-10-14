@@ -1,0 +1,7 @@
+{
+  "google_client_id": "",
+  "allowed_domains": ["example.com"],
+  "allowed_emails": [],
+  "admins": [],
+  "note": "app/config.json 으로 복사해서 쓴다. google_client_id: Google Cloud 콘솔 > API 및 서비스 > 사용자 인증 정보 > OAuth 클라이언트 ID(웹 애플리케이션). 승인된 JavaScript 원본에 서비스 주소를 넣는다. allowed_domains: 로그인 허용 회사 도메인, allowed_emails: 개별 허용(서버를 다시 켜지 않아도 바로 적용)."
+}
