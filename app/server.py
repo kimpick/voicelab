@@ -141,7 +141,9 @@ def user_lock(uid):
 
 @app.get("/api/config")
 def config():
-    return {"google_client_id": load_config().get("google_client_id", ""), "service": "보이스랩"}
+    cfg = load_config()
+    return {"google_client_id": cfg.get("google_client_id", ""), "service": "보이스랩",
+            "domain": (cfg.get("allowed_domains") or [""])[0]}
 
 
 @app.post("/api/login/google")

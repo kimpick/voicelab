@@ -125,7 +125,7 @@ audio { width: 100%; margin-top: 8px; }
   <section class="view card center" id="vLogin" hidden>
     <h1>내 목소리로 TTS 만들기</h1>
     <p class="muted">평서문·감정·연기톤·리액션 대본을 15~20분 정도 녹음하면, 내 목소리로 글을 읽어 주는 음성 모델을 만들어 드려요.</p>
-    <p class="muted small">회사 구글 계정(modulabs.co.kr)으로 로그인해 주세요.</p>
+    <p class="muted small" id="loginHint">회사 구글 계정으로 로그인해 주세요.</p>
     <div id="gbtn" style="margin-top:18px"></div>
     <p class="err" id="loginErr"></p>
   </section>
@@ -280,7 +280,8 @@ async function showLogin() {
   if (!cfg.google_client_id) { $("loginErr").textContent = "관리자가 구글 로그인을 아직 설정하지 않았어요."; return; }
   const s = document.createElement("script"); s.src = "https://accounts.google.com/gsi/client"; s.async = true;
   s.onload = () => {
-    google.accounts.id.initialize({ client_id: cfg.google_client_id, hd: "modulabs.co.kr", callback: async (resp) => {
+    if (cfg.domain) $("loginHint").textContent = `회사 구글 계정(${cfg.domain})으로 로그인해 주세요.`;
+    google.accounts.id.initialize({ client_id: cfg.google_client_id, hd: cfg.domain || undefined, callback: async (resp) => {
       const r = await fetch("/api/login/google", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ credential: resp.credential }) });
       const j = await r.json();
       if (!r.ok) { $("loginErr").textContent = j.error || "로그인 실패"; return; }
